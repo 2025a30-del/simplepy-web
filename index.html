@@ -71,10 +71,8 @@
     Very simple usage: write 'say: Hello' and press Run. To host publicly, use GitHub Pages or open via jsDelivr link.
   </footer>
 
-  <!-- Pyodide from CDN -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
   <script>
-    // Default aliases (kept for compatibility)
     const DEFAULT_MAPPING = {
       "permit": "print",
       "perm": "print",
@@ -85,7 +83,6 @@
       "show": "print"
     };
 
-    // UI elements
     const editor = document.getElementById("editor");
     const mappingEditor = document.getElementById("mappingEditor");
     const runBtn = document.getElementById("runBtn");
@@ -98,10 +95,8 @@
     const explainEl = document.getElementById("explain");
     const tabs = document.querySelectorAll(".tab");
 
-    // very simple starter
-    editor.value = 'say: Hello, world!' + '\n' + 'say: What is your name? {name}' + '\n' + 'say: Nice to meet you, {name}' + '\n';
+    editor.value = 'say: Hello, world!\n' + 'say: What is your name?\n' + 'say: Nice to meet you\n';
 
-    // load mapping from localStorage
     function loadMapping() {
       const raw = localStorage.getItem("simplepy.mapping");
       if (!raw) return DEFAULT_MAPPING;
@@ -112,6 +107,7 @@
         return DEFAULT_MAPPING;
       }
     }
+
     function saveMapping(m) {
       localStorage.setItem("simplepy.mapping", JSON.stringify(m));
     }
@@ -124,9 +120,9 @@
       transformedEl.style.display = (name === "transformed") ? "block" : "none";
       explainEl.style.display = (name === "explain") ? "block" : "none";
     }
+
     tabs.forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
 
-    // init mapping editor
     function setMappingEditor(m) {
       mappingEditor.value = JSON.stringify(m, null, 2);
     }
@@ -136,7 +132,7 @@
       setMappingEditor(DEFAULT_MAPPING);
       saveMapping(DEFAULT_MAPPING);
       setMappingEditor(loadMapping());
-      alert("Aliases reset to defaults (saved in your browser).");
+      alert("Aliases reset to defaults.");
     });
 
     aliasesBtn.addEventListener("click", () => {
@@ -153,44 +149,37 @@
       consoleEl.textContent = "";
     });
 
-    // tab default
     showTab("console");
 
-    // Simple DSL preprocessor: replace lines like 'say: ...' and 'ask: ...'
     function preprocessSimpleDSL(code) {
       const lines = code.split('\n');
       const out = lines.map(line => {
-        // match say: text
-        const m = line.match(/^\s*say\s*:\s*(.*)$/i);
-        if (m) {
-          const txt = m[1].trim();
+        const sayMatch = line.match(/^\s*say\s*:\s*(.*)$/i);
+        if (sayMatch) {
+          const txt = sayMatch[1].trim();
           if (!txt) return "print('')";
-          // if contains {var} placeholders, use f-string
           if (/\{[^}]+\}/.test(txt)) {
             return 'print(f' + JSON.stringify(txt) + ')';
-          } else {
-            return 'print(' + JSON.stringify(txt) + ')';
           }
+          return 'print(' + JSON.stringify(txt) + ')';
         }
-        // match ask: prompt -> stores into variable 'input' (or let user write python variable assignment)
-        const a = line.match(/^\s*ask\s*:\s*(.*)$/i);
-        if (a) {
-          const prompt = a[1].trim() || '';
-          return 'input(' + JSON.stringify(prompt) + ')';
+        const askMatch = line.match(/^\s*ask\s*:\s*(.*)$/i);
+        if (askMatch) {
+          const prompt = askMatch[1].trim();
+          return 'input(' + JSON.stringify(prompt || '') + ')';
         }
-        // otherwise leave the line unchanged
         return line;
       });
       return out.join('\n');
     }
 
-    // load pyodide and prepare Python helper functions
     let pyodideReady = false;
     let pyodide = null;
+
     (async () => {
       consoleEl.textContent = "Loading Python runtime (Pyodide)... this may take a few seconds.\n";
       pyodide = await loadPyodide();
-      // define Python helper functions: transform, explain, run (same as before)
+
       const helper = `
 import sys, io, json, tokenize, ast
 
@@ -260,11 +249,10 @@ def explain_top_level(code):
     return out
 
 def run_user(code, mapping, explain=False):
-    # mapping expected to be a dict
     try:
         transformed = transform_identifiers(code, mapping)
     except Exception as e:
-        return json.dumps({"transformed":"", "stdout":"", "stderr":"Error transforming identifiers: "+str(e), "explain":[]})
+        return json.dumps({"transformed":"", "stdout":"", "stderr":"Error transforming identifiers: " + str(e), "explain":[]})
 
     out_buf = io.StringIO()
     err_buf = io.StringIO()
@@ -276,7 +264,7 @@ def run_user(code, mapping, explain=False):
         if any("datetime" in v for v in mapping.values()):
             header += "import datetime\\n"
         exec(compile(header + transformed, "<user>", "exec"), {})
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc(file=err_buf)
     finally:
@@ -290,64 +278,63 @@ def run_user(code, mapping, explain=False):
         "explain": explanation
     })
 `;
+
       await pyodide.runPythonAsync(helper);
       pyodideReady = true;
       consoleEl.textContent += "Pyodide ready — you can Run your code.\n";
     })();
 
-    // run helper
     async function runCode(explain=false) {
       if (!pyodideReady) {
         alert("Runtime still loading — wait a few seconds.");
         return;
       }
-      let mapping;
-      try {
-        mapping = JSON.parse(mappingEditor.value);
-      } catch (e) {
-        alert("Invalid aliases JSON: " + e);
-        return;
-      }
-      saveMapping(mapping);
 
-      // preprocess VERY simple DSL (say: ...)
-      const userCode = preprocessSimpleDSL(editor.value);
-
-      // set python globals
-      pyodide.globals.set("user_code", userCode);
-      pyodide.globals.set("user_mapping", mapping);
-      pyodide.globals.set("user_explain", explain);
-      // run
       try {
+        const mapping = JSON.parse(mappingEditor.value);
+        saveMapping(mapping);
+
+        const userCode = preprocessSimpleDSL(editor.value);
+        pyodide.globals.set("user_code", userCode);
+        pyodide.globals.set("user_mapping_json", JSON.stringify(mapping));
+        pyodide.globals.set("user_explain", explain);
+
         document.body.classList.add("loading");
         consoleEl.textContent = "Running...";
-        const resJson = await pyodide.runPythonAsync('run_user(user_code, user_mapping, user_explain)');
+
+        const resJson = await pyodide.runPythonAsync(`
+import json
+result = run_user(user_code, json.loads(user_mapping_json), user_explain)
+result
+`);
+
         const res = JSON.parse(resJson);
         transformedEl.textContent = res.transformed;
         consoleEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
         explainEl.textContent = (res.explain || []).join("\n");
         showTab("console");
       } catch (err) {
-        consoleEl.textContent = "Error running Pyodide: " + err;
+        consoleEl.textContent = "Error: " + err;
       } finally {
         document.body.classList.remove("loading");
-        try { pyodide.globals.del("user_code"); pyodide.globals.del("user_mapping"); pyodide.globals.del("user_explain"); } catch(e){}
+        try {
+          pyodide.globals.del("user_code");
+          pyodide.globals.del("user_mapping_json");
+          pyodide.globals.del("user_explain");
+        } catch (e) {}
       }
     }
 
     runBtn.addEventListener("click", () => runCode(false));
     runExplainBtn.addEventListener("click", () => runCode(true));
 
-    // keyboard shortcut: Ctrl+Enter to run
     editor.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         runCode(false);
       }
     });
 
-    // on load, put mapping
     mappingEditor.value = JSON.stringify(loadMapping(), null, 2);
-
   </script>
 </body>
 </html>
