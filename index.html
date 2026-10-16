@@ -1,340 +1,181 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>SimplePy Web — very simple: use "say: ..." to print</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimplePy Web</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; height:100vh; display:flex; flex-direction:column; }
-    header { background:#0b5; padding:10px 16px; display:flex; align-items:center; gap:12px; }
-    header h1 { font-size:16px; margin:0; }
-    .toolbar { margin-left:auto; display:flex; gap:8px; }
-    button { padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.08); background: white; cursor:pointer; }
-    button.primary { background:#0b5; color:white; border:0; }
-    main { flex:1; display:grid; grid-template-columns: 1fr 420px; gap:12px; padding:12px; box-sizing:border-box; }
-    .panel { display:flex; flex-direction:column; gap:8px; height:100%; }
-    label { font-weight:600; font-size:13px; }
-    textarea, pre { width:100%; height:100%; box-sizing:border-box; font-family: "Courier New", monospace; font-size:13px; padding:10px; border:1px solid #ddd; border-radius:6px; background:#fff; resize:none; }
-    .small { font-size:12px; color:#555; }
-    .right-tabs { display:flex; flex-direction:column; gap:8px; height:100%; }
-    .tabs { display:flex; gap:6px; }
-    .tab { padding:6px 10px; border-radius:6px; background:#f4f4f4; cursor:pointer; }
-    .tab.active { background:#0b5; color:white; }
-    .tab-area { flex:1; }
-    .row { display:flex; gap:8px; }
-    #mappingEditor { height:160px; }
-    footer { padding:8px 12px; font-size:13px; color:#444; border-top:1px solid #eee; background:#fafafa; }
-    .loading { opacity:0.6; pointer-events:none; }
-    .note { font-size:12px; color:#333; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      color: #111;
+    }
+    .topbar {
+      background: #1fc76a;
+      color: #fff;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+    .panel {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .main {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 340px;
+      border: none;
+      resize: vertical;
+      padding: 16px;
+      font-size: 18px;
+      line-height: 1.5;
+      font-family: "Courier New", monospace;
+      background: #fff;
+    }
+    .side {
+      padding: 16px;
+      background: #fafafa;
+      border-left: 1px solid #ddd;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      background: #1fc76a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #e8e8e8;
+      color: #111;
+    }
+    .console {
+      background: #111;
+      color: #eee;
+      border-radius: 8px;
+      min-height: 200px;
+      padding: 12px;
+      white-space: pre-wrap;
+      font-family: "Courier New", monospace;
+      line-height: 1.5;
+      overflow: auto;
+    }
+    .help {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #444;
+      line-height: 1.6;
+    }
+    .code {
+      font-family: "Courier New", monospace;
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    @media (max-width: 800px) {
+      .main { grid-template-columns: 1fr; }
+      textarea { min-height: 240px; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>SimplePy Web — VERY SIMPLE: write say: Hello</h1>
-    <div class="toolbar">
-      <button id="runBtn" class="primary">Run</button>
-      <button id="runExplainBtn">Run + Explain</button>
-      <button id="aliasesBtn">Edit Aliases</button>
-      <button id="clearBtn">Clear Console</button>
+  <div class="topbar">SimplePy Web — very simple</div>
+
+  <div class="wrap">
+    <div class="buttons">
+      <button id="runBtn">Run</button>
+      <button id="clearBtn" class="secondary">Clear</button>
     </div>
-  </header>
 
-  <main>
-    <section class="panel">
-      <label>Editor <span class="small">Type lines like: say: Hello</span></label>
-      <textarea id="editor"></textarea>
-      <div class="row">
-        <label style="flex:1">Aliases (JSON):</label>
-        <div style="width:220px; text-align:right;">
-          <button id="loadDefault">Reset defaults</button>
-        </div>
+    <div class="main panel">
+      <div>
+        <textarea id="editor">say: Hello, world!
+say: My name is Alex
+say: I am learning Python</textarea>
       </div>
-      <textarea id="mappingEditor"></textarea>
-    </section>
 
-    <aside class="panel right-tabs">
-      <div class="tabs">
-        <div class="tab active" data-tab="console">Console</div>
-        <div class="tab" data-tab="transformed">Transformed</div>
-        <div class="tab" data-tab="explain">Explanation</div>
+      <div class="side">
+        <div>Output</div>
+        <div id="console" class="console">Ready.</div>
       </div>
-      <div class="tab-area" id="tabArea">
-        <pre id="console" style="height:48%; overflow:auto;">(output will appear here)</pre>
-        <pre id="transformed" style="height:24%; overflow:auto; display:none;"></pre>
-        <pre id="explain" style="height:24%; overflow:auto; display:none;"></pre>
-      </div>
-      <div class="note">Runs entirely in your browser using Pyodide. Use say: ... to print text.</div>
-    </aside>
-  </main>
+    </div>
 
-  <footer>
-    Very simple usage: write 'say: Hello' and press Run. To host publicly, use GitHub Pages or open via jsDelivr link.
-  </footer>
+    <div class="help">
+      Type lines like:<br>
+      <span class="code">say: Hello</span><br>
+      <span class="code">say: My name is Alex</span><br>
+      <span class="code">ask: What is your name?</span><br>
+      Press <strong>Run</strong>.
+    </div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
   <script>
-    const DEFAULT_MAPPING = {
-      "permit": "print",
-      "perm": "print",
-      "say": "print",
-      "ask": "input",
-      "length": "len",
-      "now": "datetime.datetime.now",
-      "show": "print"
-    };
+    const editor = document.getElementById('editor');
+    const consoleEl = document.getElementById('console');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
-    const editor = document.getElementById("editor");
-    const mappingEditor = document.getElementById("mappingEditor");
-    const runBtn = document.getElementById("runBtn");
-    const runExplainBtn = document.getElementById("runExplainBtn");
-    const aliasesBtn = document.getElementById("aliasesBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const loadDefaultBtn = document.getElementById("loadDefault");
-    const consoleEl = document.getElementById("console");
-    const transformedEl = document.getElementById("transformed");
-    const explainEl = document.getElementById("explain");
-    const tabs = document.querySelectorAll(".tab");
+    function runSimpleCode() {
+      const raw = editor.value;
+      const lines = raw.split('\n');
+      const output = [];
 
-    editor.value = 'say: Hello, world!\n' + 'say: What is your name?\n' + 'say: Nice to meet you\n';
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
 
-    function loadMapping() {
-      const raw = localStorage.getItem("simplepy.mapping");
-      if (!raw) return DEFAULT_MAPPING;
-      try {
-        const obj = JSON.parse(raw);
-        return obj;
-      } catch (e) {
-        return DEFAULT_MAPPING;
-      }
-    }
-
-    function saveMapping(m) {
-      localStorage.setItem("simplepy.mapping", JSON.stringify(m));
-    }
-
-    function showTab(name) {
-      tabs.forEach(t => {
-        t.classList.toggle("active", t.dataset.tab === name);
-      });
-      consoleEl.style.display = (name === "console") ? "block" : "none";
-      transformedEl.style.display = (name === "transformed") ? "block" : "none";
-      explainEl.style.display = (name === "explain") ? "block" : "none";
-    }
-
-    tabs.forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
-
-    function setMappingEditor(m) {
-      mappingEditor.value = JSON.stringify(m, null, 2);
-    }
-    setMappingEditor(loadMapping());
-
-    loadDefaultBtn.addEventListener("click", () => {
-      setMappingEditor(DEFAULT_MAPPING);
-      saveMapping(DEFAULT_MAPPING);
-      setMappingEditor(loadMapping());
-      alert("Aliases reset to defaults.");
-    });
-
-    aliasesBtn.addEventListener("click", () => {
-      try {
-        const parsed = JSON.parse(mappingEditor.value);
-        saveMapping(parsed);
-        alert("Aliases saved in browser storage.");
-      } catch (e) {
-        alert("Invalid JSON: " + e);
-      }
-    });
-
-    clearBtn.addEventListener("click", () => {
-      consoleEl.textContent = "";
-    });
-
-    showTab("console");
-
-    function preprocessSimpleDSL(code) {
-      const lines = code.split('\n');
-      const out = lines.map(line => {
-        const sayMatch = line.match(/^\s*say\s*:\s*(.*)$/i);
+        const sayMatch = trimmed.match(/^say\s*:\s*(.*)$/i);
         if (sayMatch) {
-          const txt = sayMatch[1].trim();
-          if (!txt) return "print('')";
-          if (/\{[^}]+\}/.test(txt)) {
-            return 'print(f' + JSON.stringify(txt) + ')';
-          }
-          return 'print(' + JSON.stringify(txt) + ')';
+          output.push(sayMatch[1]);
+          continue;
         }
-        const askMatch = line.match(/^\s*ask\s*:\s*(.*)$/i);
+
+        const askMatch = trimmed.match(/^ask\s*:\s*(.*)$/i);
         if (askMatch) {
-          const prompt = askMatch[1].trim();
-          return 'input(' + JSON.stringify(prompt || '') + ')';
+          const prompt = askMatch[1] || '';
+          const answer = prompt ? window.prompt(prompt) : window.prompt('');
+          output.push(answer ?? '');
+          continue;
         }
-        return line;
-      });
-      return out.join('\n');
+
+        output.push('// skipped: ' + trimmed);
+      }
+
+      consoleEl.textContent = output.join('\n');
     }
 
-    let pyodideReady = false;
-    let pyodide = null;
-
-    (async () => {
-      consoleEl.textContent = "Loading Python runtime (Pyodide)... this may take a few seconds.\n";
-      pyodide = await loadPyodide();
-
-      const helper = `
-import sys, io, json, tokenize, ast
-
-def transform_identifiers(code, mapping):
-    out_tokens = []
-    reader = io.StringIO(code).readline
-    try:
-        for tok in tokenize.generate_tokens(reader):
-            toknum = tok.type
-            tokval = tok.string
-            if toknum == tokenize.NAME and tokval in mapping:
-                new_text = mapping[tokval]
-                if "." in new_text:
-                    parts = new_text.split(".")
-                    for i, part in enumerate(parts):
-                        out_tokens.append((tokenize.NAME, part))
-                        if i != len(parts) - 1:
-                            out_tokens.append((tokenize.OP, "."))
-                else:
-                    out_tokens.append((tokenize.NAME, new_text))
-            else:
-                out_tokens.append((toknum, tokval))
-    except tokenize.TokenError as e:
-        raise SyntaxError(f"Tokenizing error: {e}")
-    return tokenize.untokenize(out_tokens)
-
-def explain_top_level(code):
-    try:
-        tree = ast.parse(code)
-    except Exception as e:
-        return ["Could not parse code for explanation: " + str(e)]
-    def explain_node(node):
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            if isinstance(node.value.func, ast.Name):
-                func = node.value.func.id
-            elif isinstance(node.value.func, ast.Attribute):
-                func = ast.unparse(node.value.func)
-            else:
-                func = ast.unparse(node.value.func)
-            return f"Call: {func}(...). Calls function {func}."
-        if isinstance(node, ast.Assign):
-            targets = ", ".join(ast.unparse(t) for t in node.targets)
-            return f"Assign: sets {targets} to the expression on the right-hand side."
-        if isinstance(node, ast.FunctionDef):
-            return f"Function def: defines '{node.name}' with {len(node.args.args)} parameter(s)."
-        if isinstance(node, ast.ClassDef):
-            return f"Class def: defines class '{node.name}'."
-        if isinstance(node, ast.Import):
-            names = ", ".join(alias.name for alias in node.names)
-            return f"Import: imports {names}."
-        if isinstance(node, ast.ImportFrom):
-            mod = node.module or ""
-            names = ", ".join(alias.name for alias in node.names)
-            return f"From import: from {mod} import {names}."
-        if isinstance(node, ast.If):
-            return f"If statement: checks a condition and runs code accordingly."
-        if isinstance(node, ast.For):
-            return f"For loop: iterates over a sequence."
-        if isinstance(node, ast.While):
-            return f"While loop: repeats while a condition is true."
-        return f"{node.__class__.__name__}: (no short help available)."
-    out = []
-    for idx, node in enumerate(tree.body, start=1):
-        out.append(f"{idx}. {explain_node(node)}")
-    if not out:
-        out = ["(no top-level statements found)"]
-    return out
-
-def run_user(code, mapping, explain=False):
-    try:
-        transformed = transform_identifiers(code, mapping)
-    except Exception as e:
-        return json.dumps({"transformed":"", "stdout":"", "stderr":"Error transforming identifiers: " + str(e), "explain":[]})
-
-    out_buf = io.StringIO()
-    err_buf = io.StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
-    try:
-        sys.stdout = out_buf
-        sys.stderr = err_buf
-        header = ""
-        if any("datetime" in v for v in mapping.values()):
-            header += "import datetime\\n"
-        exec(compile(header + transformed, "<user>", "exec"), {})
-    except Exception:
-        import traceback
-        traceback.print_exc(file=err_buf)
-    finally:
-        sys.stdout, sys.stderr = old_out, old_err
-
-    explanation = explain_top_level(transformed) if explain else []
-    return json.dumps({
-        "transformed": transformed,
-        "stdout": out_buf.getvalue(),
-        "stderr": err_buf.getvalue(),
-        "explain": explanation
-    })
-`;
-
-      await pyodide.runPythonAsync(helper);
-      pyodideReady = true;
-      consoleEl.textContent += "Pyodide ready — you can Run your code.\n";
-    })();
-
-    async function runCode(explain=false) {
-      if (!pyodideReady) {
-        alert("Runtime still loading — wait a few seconds.");
-        return;
-      }
-
-      try {
-        const mapping = JSON.parse(mappingEditor.value);
-        saveMapping(mapping);
-
-        const userCode = preprocessSimpleDSL(editor.value);
-        pyodide.globals.set("user_code", userCode);
-        pyodide.globals.set("user_mapping_json", JSON.stringify(mapping));
-        pyodide.globals.set("user_explain", explain);
-
-        document.body.classList.add("loading");
-        consoleEl.textContent = "Running...";
-
-        const resJson = await pyodide.runPythonAsync(`
-import json
-result = run_user(user_code, json.loads(user_mapping_json), user_explain)
-result
-`);
-
-        const res = JSON.parse(resJson);
-        transformedEl.textContent = res.transformed;
-        consoleEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
-        explainEl.textContent = (res.explain || []).join("\n");
-        showTab("console");
-      } catch (err) {
-        consoleEl.textContent = "Error: " + err;
-      } finally {
-        document.body.classList.remove("loading");
-        try {
-          pyodide.globals.del("user_code");
-          pyodide.globals.del("user_mapping_json");
-          pyodide.globals.del("user_explain");
-        } catch (e) {}
-      }
-    }
-
-    runBtn.addEventListener("click", () => runCode(false));
-    runExplainBtn.addEventListener("click", () => runCode(true));
-
-    editor.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        runCode(false);
-      }
+    runBtn.addEventListener('click', runSimpleCode);
+    clearBtn.addEventListener('click', () => {
+      consoleEl.textContent = 'Ready.';
     });
 
-    mappingEditor.value = JSON.stringify(loadMapping(), null, 2);
+    editor.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        runSimpleCode();
+      }
+    });
   </script>
 </body>
 </html>
