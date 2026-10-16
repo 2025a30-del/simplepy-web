@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SimplePy Web — shorthand Python in the browser</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; height:100vh; display:flex; flex-direction:column; }
+    header { background:#0b5; padding:10px 16px; display:flex; align-items:center; gap:12px; }
+    header h1 { font-size:16px; margin:0; }
+    .toolbar { margin-left:auto; display:flex; gap:8px; }
+    button { padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.08); background: white; cursor:pointer; }
+    button.primary { background:#0b5; color:white; border:0; }
+    main { flex:1; display:grid; grid-template-columns: 1fr 420px; gap:12px; padding:12px; box-sizing:border-box; }
+    .panel { display:flex; flex-direction:column; gap:8px; height:100%; }
+    label { font-weight:600; font-size:13px; }
+    textarea, pre { width:100%; height:100%; box-sizing:border-box; font-family: "Courier New", monospace; font-size:13px; padding:10px; border:1px solid #ddd; border-radius:6px; background:#fff; resize:none; }
+    .small { font-size:12px; color:#555; }
+    .right-tabs { display:flex; flex-direction:column; gap:8px; height:100%; }
+    .tabs { display:flex; gap:6px; }
+    .tab { padding:6px 10px; border-radius:6px; background:#f4f4f4; cursor:pointer; }
+    .tab.active { background:#0b5; color:white; }
+    .tab-area { flex:1; }
+    .row { display:flex; gap:8px; }
+    #mappingEditor { height:160px; }
+    footer { padding:8px 12px; font-size:13px; color:#444; border-top:1px solid #eee; background:#fafafa; }
+    .loading { opacity:0.6; pointer-events:none; }
+    .note { font-size:12px; color:#333; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SimplePy Web — shorthand Python (permit → print)</h1>
+    <div class="toolbar">
+      <button id="runBtn" class="primary">Run</button>
+      <button id="runExplainBtn">Run + Explain</button>
+      <button id="aliasesBtn">Edit Aliases</button>
+      <button id="clearBtn">Clear Console</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <label>Editor <span class="small">write shorthand Python here</span></label>
+      <textarea id="editor"></textarea>
+      <div class="row">
+        <label style="flex:1">Aliases (JSON):</label>
+        <div style="width:220px; text-align:right;">
+          <button id="loadDefault">Reset defaults</button>
+        </div>
+      </div>
+      <textarea id="mappingEditor"></textarea>
+    </section>
+
+    <aside class="panel right-tabs">
+      <div class="tabs">
+        <div class="tab active" data-tab="console">Console</div>
+        <div class="tab" data-tab="transformed">Transformed</div>
+        <div class="tab" data-tab="explain">Explanation</div>
+      </div>
+      <div class="tab-area" id="tabArea">
+        <pre id="console" style="height:48%; overflow:auto;">(output will appear here)</pre>
+        <pre id="transformed" style="height:24%; overflow:auto; display:none;"></pre>
+        <pre id="explain" style="height:24%; overflow:auto; display:none;"></pre>
+      </div>
+      <div class="note">This runs entirely in your browser using Pyodide (no server).</div>
+    </aside>
+  </main>
+
+  <footer>
+    Quick steps: edit alias JSON, type code (e.g. permit("Hi")), press Run. To host a clickable link use GitHub Pages — instructions below.
+  </footer>
+
+  <!-- Pyodide from CDN -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script>
+    // Default aliases
+    const DEFAULT_MAPPING = {
+      "permit": "print",
+      "perm": "print",
+      "say": "print",
+      "ask": "input",
+      "length": "len",
+      "now": "datetime.datetime.now",
+      "show": "print"
+    };
+
+    // UI elements
+    const editor = document.getElementById("editor");
+    const mappingEditor = document.getElementById("mappingEditor");
+    const runBtn = document.getElementById("runBtn");
+    const runExplainBtn = document.getElementById("runExplainBtn");
+    const aliasesBtn = document.getElementById("aliasesBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const loadDefaultBtn = document.getElementById("loadDefault");
+    const consoleEl = document.getElementById("console");
+    const transformedEl = document.getElementById("transformed");
+    const explainEl = document.getElementById("explain");
+    const tabs = document.querySelectorAll(".tab");
+
+    // small sample starter
+    editor.value = 'permit("Hello, world!")\\nname = ask("What is your name? ")\\npermit("Nice to meet you, " + name)\\n';
+
+    // load mapping from localStorage
+    function loadMapping() {
+      const raw = localStorage.getItem("simplepy.mapping");
+      if (!raw) return DEFAULT_MAPPING;
+      try {
+        const obj = JSON.parse(raw);
+        return obj;
+      } catch (e) {
+        return DEFAULT_MAPPING;
+      }
+    }
+    function saveMapping(m) {
+      localStorage.setItem("simplepy.mapping", JSON.stringify(m));
+    }
+
+    function showTab(name) {
+      tabs.forEach(t => {
+        t.classList.toggle("active", t.dataset.tab === name);
+      });
+      consoleEl.style.display = (name === "console") ? "block" : "none";
+      transformedEl.style.display = (name === "transformed") ? "block" : "none";
+      explainEl.style.display = (name === "explain") ? "block" : "none";
+    }
+    tabs.forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
+
+    // init mapping editor
+    function setMappingEditor(m) {
+      mappingEditor.value = JSON.stringify(m, null, 2);
+    }
+    setMappingEditor(loadMapping());
+
+    loadDefaultBtn.addEventListener("click", () => {
+      setMappingEditor(DEFAULT_MAPPING);
+      saveMapping(DEFAULT_MAPPING);
+      setMappingEditor(loadMapping());
+      alert("Aliases reset to defaults (saved in your browser).");
+    });
+
+    aliasesBtn.addEventListener("click", () => {
+      try {
+        const parsed = JSON.parse(mappingEditor.value);
+        saveMapping(parsed);
+        alert("Aliases saved in browser storage.");
+      } catch (e) {
+        alert("Invalid JSON: " + e);
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      consoleEl.textContent = "";
+    });
+
+    // tab default
+    showTab("console");
+
+    // load pyodide and prepare Python helper functions
+    let pyodideReady = false;
+    let pyodide = null;
+    (async () => {
+      consoleEl.textContent = "Loading Python runtime (Pyodide)... this may take a few seconds.\n";
+      pyodide = await loadPyodide();
+      // define Python helper functions: transform, explain, run
+      const helper = `
+import sys, io, json, tokenize, ast
+
+def transform_identifiers(code, mapping):
+    out_tokens = []
+    reader = io.StringIO(code).readline
+    try:
+        for tok in tokenize.generate_tokens(reader):
+            toknum = tok.type
+            tokval = tok.string
+            if toknum == tokenize.NAME and tokval in mapping:
+                new_text = mapping[tokval]
+                if "." in new_text:
+                    parts = new_text.split(".")
+                    for i, part in enumerate(parts):
+                        out_tokens.append((tokenize.NAME, part))
+                        if i != len(parts) - 1:
+                            out_tokens.append((tokenize.OP, "."))
+                else:
+                    out_tokens.append((tokenize.NAME, new_text))
+            else:
+                out_tokens.append((toknum, tokval))
+    except tokenize.TokenError as e:
+        raise SyntaxError(f"Tokenizing error: {e}")
+    return tokenize.untokenize(out_tokens)
+
+def explain_top_level(code):
+    try:
+        tree = ast.parse(code)
+    except Exception as e:
+        return ["Could not parse code for explanation: " + str(e)]
+    def explain_node(node):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            if isinstance(node.value.func, ast.Name):
+                func = node.value.func.id
+            elif isinstance(node.value.func, ast.Attribute):
+                func = ast.unparse(node.value.func)
+            else:
+                func = ast.unparse(node.value.func)
+            return f"Call: {func}(...). Calls function {func}."
+        if isinstance(node, ast.Assign):
+            targets = ", ".join(ast.unparse(t) for t in node.targets)
+            return f"Assign: sets {targets} to the expression on the right-hand side."
+        if isinstance(node, ast.FunctionDef):
+            return f"Function def: defines '{node.name}' with {len(node.args.args)} parameter(s)."
+        if isinstance(node, ast.ClassDef):
+            return f"Class def: defines class '{node.name}'."
+        if isinstance(node, ast.Import):
+            names = ", ".join(alias.name for alias in node.names)
+            return f"Import: imports {names}."
+        if isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            names = ", ".join(alias.name for alias in node.names)
+            return f"From import: from {mod} import {names}."
+        if isinstance(node, ast.If):
+            return f"If statement: checks a condition and runs code accordingly."
+        if isinstance(node, ast.For):
+            return f"For loop: iterates over a sequence."
+        if isinstance(node, ast.While):
+            return f"While loop: repeats while a condition is true."
+        return f"{node.__class__.__name__}: (no short help available)."
+    out = []
+    for idx, node in enumerate(tree.body, start=1):
+        out.append(f"{idx}. {explain_node(node)}")
+    if not out:
+        out = ["(no top-level statements found)"]
+    return out
+
+def run_user(code, mapping, explain=False):
+    # mapping expected to be a dict
+    try:
+        transformed = transform_identifiers(code, mapping)
+    except Exception as e:
+        return json.dumps({"transformed":"", "stdout":"", "stderr":"Error transforming identifiers: "+str(e), "explain":[]})
+
+    out_buf = io.StringIO()
+    err_buf = io.StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout = out_buf
+        sys.stderr = err_buf
+        header = ""
+        if any("datetime" in v for v in mapping.values()):
+            header += "import datetime\\n"
+        exec(compile(header + transformed, "<user>", "exec"), {})
+    except Exception as e:
+        # write traceback to stderr buffer
+        import traceback
+        traceback.print_exc(file=err_buf)
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+    explanation = explain_top_level(transformed) if explain else []
+    return json.dumps({
+        "transformed": transformed,
+        "stdout": out_buf.getvalue(),
+        "stderr": err_buf.getvalue(),
+        "explain": explanation
+    })
+`;
+      await pyodide.runPythonAsync(helper);
+      pyodideReady = true;
+      consoleEl.textContent += "Pyodide ready — you can Run your code.\n";
+    })();
+
+    // run helper
+    async function runCode(explain=false) {
+      if (!pyodideReady) {
+        alert("Runtime still loading — wait a few seconds.");
+        return;
+      }
+      let mapping;
+      try {
+        mapping = JSON.parse(mappingEditor.value);
+      } catch (e) {
+        alert("Invalid aliases JSON: " + e);
+        return;
+      }
+      saveMapping(mapping);
+      // set python globals
+      pyodide.globals.set("user_code", editor.value);
+      // convert mapping to pyodide object
+      pyodide.globals.set("user_mapping", mapping);
+      pyodide.globals.set("user_explain", explain);
+      // run
+      try {
+        document.body.classList.add("loading");
+        consoleEl.textContent = "Running...";
+        const resJson = await pyodide.runPythonAsync('run_user(user_code, user_mapping, user_explain)');
+        const res = JSON.parse(resJson);
+        transformedEl.textContent = res.transformed;
+        consoleEl.textContent = (res.stdout || "") + (res.stderr ? "\\n[stderr]\\n" + res.stderr : "");
+        explainEl.textContent = (res.explain || []).join("\\n");
+        showTab("console");
+      } catch (err) {
+        consoleEl.textContent = "Error running Pyodide: " + err;
+      } finally {
+        document.body.classList.remove("loading");
+        // cleanup Python globals
+        try { pyodide.globals.del("user_code"); pyodide.globals.del("user_mapping"); pyodide.globals.del("user_explain"); } catch(e){}
+      }
+    }
+
+    runBtn.addEventListener("click", () => runCode(false));
+    runExplainBtn.addEventListener("click", () => runCode(true));
+
+    // keyboard shortcut: Ctrl+Enter to run
+    editor.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        runCode(false);
+      }
+    });
+
+    // on load, put mapping
+    mappingEditor.value = JSON.stringify(loadMapping(), null, 2);
+
+  </script>
+</body>
+</html>
