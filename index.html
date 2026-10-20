@@ -3,131 +3,241 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SimplePy Web</title>
+  <title>SimplePy</title>
   <style>
+    :root {
+      --bg: #f4f7f3;
+      --panel: #ffffff;
+      --panel-soft: #f8faf8;
+      --line: #dfe8e0;
+      --green: #1dbf73;
+      --green-dark: #0c9d5e;
+      --text: #122019;
+      --muted: #5d7169;
+      --shadow: 0 10px 28px rgba(16, 34, 23, 0.08);
+      --console: #101b17;
+      --console-text: #dffae7;
+      --danger: #c9483a;
+    }
+
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f3f3f3;
-      color: #111;
+      background: linear-gradient(180deg, #eff7f0 0%, #edf4ee 100%);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
     }
+
     .topbar {
-      background: #1fc76a;
-      color: #fff;
-      padding: 12px 16px;
-      font-weight: 700;
-      font-size: 18px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+      color: white;
+      padding: 18px 24px;
+      box-shadow: var(--shadow);
     }
-    .wrap {
-      max-width: 1100px;
-      margin: 20px auto;
-      padding: 0 16px;
-    }
-    .panel {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .main {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    textarea {
-      width: 100%;
-      min-height: 340px;
-      border: none;
-      resize: vertical;
-      padding: 16px;
-      font-size: 18px;
-      line-height: 1.5;
-      font-family: "Courier New", monospace;
-      background: #fff;
-    }
-    .side {
-      padding: 16px;
-      background: #fafafa;
-      border-left: 1px solid #ddd;
-    }
-    .buttons {
+
+    .topbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
-      gap: 10px;
-      margin: 12px 0;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
       flex-wrap: wrap;
     }
+
+    .brand {
+      font-size: clamp(1.2rem, 2vw, 1.8rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .topbar small {
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    .layout {
+      max-width: 1200px;
+      margin: 20px auto 28px auto;
+      padding: 0 16px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
     button {
-      border: none;
-      background: #1fc76a;
-      color: white;
-      padding: 10px 14px;
-      border-radius: 8px;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 0.96rem;
       font-weight: 700;
       cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
     }
-    button.secondary {
-      background: #e8e8e8;
-      color: #111;
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .primary {
+      background: var(--green);
+      color: white;
+      box-shadow: 0 10px 18px rgba(29, 191, 115, 0.2);
     }
-    .console {
-      background: #111;
-      color: #eee;
-      border-radius: 8px;
-      min-height: 200px;
-      padding: 12px;
-      white-space: pre-wrap;
-      font-family: "Courier New", monospace;
-      line-height: 1.5;
-      overflow: auto;
+
+    .secondary {
+      background: #ebf0ed;
+      color: var(--text);
+      border: 1px solid var(--line);
     }
-    .help {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #444;
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .editor-wrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 480px;
+    }
+
+    .editor-title {
+      background: #f3f7f4;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 440px;
+      border: 0;
+      resize: vertical;
+      padding: 18px 18px 20px 18px;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 16px;
       line-height: 1.6;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      outline: none;
     }
-    .code {
-      font-family: "Courier New", monospace;
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 4px;
+
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 480px;
     }
-    @media (max-width: 800px) {
-      .main { grid-template-columns: 1fr; }
-      textarea { min-height: 240px; }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #f5faf6;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .console {
+      flex: 1;
+      margin: 0;
+      background: #101b17;
+      color: var(--console-text);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      line-height: 1.6;
+      font-size: 14px;
+      overflow: auto;
+      padding: 14px 16px;
+      white-space: pre-wrap;
+    }
+
+    .tips {
+      margin-top: 16px;
+      padding: 16px 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .code-inline {
+      display: inline-block;
+      background: #eef5f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    @media (max-width: 860px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      textarea {
+        min-height: 300px;
+      }
+      .output-panel { min-height: 220px; }
     }
   </style>
 </head>
 <body>
-  <div class="topbar">SimplePy Web — very simple</div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">SimplePy</div>
+      <small>very simple syntax for beginners</small>
+    </div>
+  </header>
 
-  <div class="wrap">
-    <div class="buttons">
-      <button id="runBtn">Run</button>
-      <button id="clearBtn" class="secondary">Clear</button>
+  <div class="layout">
+    <div class="controls">
+      <button id="runBtn" class="primary">Run</button>
+      <button id="exampleBtn" class="secondary">Load example</button>
+      <button id="clearBtn" class="secondary">Clear output</button>
     </div>
 
-    <div class="main panel">
-      <div>
-        <textarea id="editor">say: Hello, world!
-say: My name is Alex
-say: I am learning Python</textarea>
-      </div>
+    <div class="main-grid">
+      <section class="card editor-wrap">
+        <div class="editor-title">Editor</div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </section>
 
-      <div class="side">
-        <div>Output</div>
-        <div id="console" class="console">Ready.</div>
-      </div>
+      <aside class="card output-panel">
+        <div class="output-header">
+          <span>Output</span>
+        </div>
+        <pre id="console" class="console">Ready.</pre>
+      </aside>
     </div>
 
-    <div class="help">
-      Type lines like:<br>
-      <span class="code">say: Hello</span><br>
-      <span class="code">say: My name is Alex</span><br>
-      <span class="code">ask: What is your name?</span><br>
-      Press <strong>Run</strong>.
+    <div class="tips">
+      Try these examples:<br>
+      <span class="code-inline">say: Hello, world!</span><br>
+      <span class="code-inline">say: My name is Alex</span><br>
+      <span class="code-inline">ask: What is your name?</span><br>
+      <span class="code-inline">say: Nice to meet you!</span><br>
+      Tip: use the same exact format and press Run.
     </div>
   </div>
 
@@ -136,46 +246,110 @@ say: I am learning Python</textarea>
     const consoleEl = document.getElementById('console');
     const runBtn = document.getElementById('runBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const exampleBtn = document.getElementById('exampleBtn');
 
-    function runSimpleCode() {
-      const raw = editor.value;
-      const lines = raw.split('\n');
-      const output = [];
+    const defaultExample = [
+      'say: Hello, world!',
+      'say: My name is Alex',
+      'ask: What is your name?',
+      'say: Nice to meet you!'
+    ].join('\n');
 
-      for (let line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        const sayMatch = trimmed.match(/^say\s*:\s*(.*)$/i);
-        if (sayMatch) {
-          output.push(sayMatch[1]);
-          continue;
-        }
-
-        const askMatch = trimmed.match(/^ask\s*:\s*(.*)$/i);
-        if (askMatch) {
-          const prompt = askMatch[1] || '';
-          const answer = prompt ? window.prompt(prompt) : window.prompt('');
-          output.push(answer ?? '');
-          continue;
-        }
-
-        output.push('// skipped: ' + trimmed);
-      }
-
-      consoleEl.textContent = output.join('\n');
+    function saveCode() {
+      localStorage.setItem('simplepy-code', editor.value);
     }
 
-    runBtn.addEventListener('click', runSimpleCode);
+    function loadSavedCode() {
+      const saved = localStorage.getItem('simplepy-code');
+      if (saved && saved.trim()) {
+        editor.value = saved;
+      } else {
+        editor.value = defaultExample;
+      }
+    }
+
+    function renderOutput(lines) {
+      consoleEl.textContent = lines.join('\n');
+    }
+
+    function formatText(text, varsObj) {
+      return text.replace(/\{(\w+)\}/g, (_, key) => {
+        return Object.prototype.hasOwnProperty.call(varsObj, key) ? String(varsObj[key]) : '{' + key + '}';
+      });
+    }
+
+    function runCode() {
+      const code = editor.value;
+      const lines = code.split('\n');
+      const output = [];
+      const vars = {};
+
+      for (let rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        const sayMatch = line.match(/^say\s*:\s*(.*)$/i);
+        if (sayMatch) {
+          const text = sayMatch[1].trim();
+          output.push(formatText(text, vars));
+          continue;
+        }
+
+        const assignMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*ask\s*:\s*(.*)$/i);
+        if (assignMatch) {
+          const name = assignMatch[1];
+          const prompt = assignMatch[2].trim();
+          const value = window.prompt(prompt || 'Enter a value:');
+          vars[name] = value ?? '';
+          output.push(`${name} = ${vars[name]}`);
+          continue;
+        }
+
+        const askMatch = line.match(/^ask\s*:\s*(.*)$/i);
+        if (askMatch) {
+          const prompt = askMatch[1].trim();
+          const value = window.prompt(prompt || 'Enter a value:');
+          output.push(value ?? '');
+          continue;
+        }
+
+        const assignStaticMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/);
+        if (assignStaticMatch) {
+          const name = assignStaticMatch[1];
+          let value = assignStaticMatch[2].trim();
+          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          vars[name] = value;
+          output.push(`${name} = ${value}`);
+          continue;
+        }
+
+        output.push('// skipped: ' + line);
+      }
+
+      saveCode();
+      renderOutput(output);
+    }
+
+    runBtn.addEventListener('click', runCode);
     clearBtn.addEventListener('click', () => {
       consoleEl.textContent = 'Ready.';
     });
 
+    exampleBtn.addEventListener('click', () => {
+      editor.value = defaultExample;
+      saveCode();
+      consoleEl.textContent = 'Example loaded.';
+    });
+
     editor.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        runSimpleCode();
+        runCode();
       }
     });
+
+    loadSavedCode();
   </script>
 </body>
 </html>
